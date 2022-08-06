@@ -1,7 +1,9 @@
 package com.github.GypsyJR777.service;
 
 import com.github.GypsyJR777.config.BotConfig;
+import com.github.GypsyJR777.entity.Task;
 import com.github.GypsyJR777.entity.User;
+import com.github.GypsyJR777.repository.TaskRepository;
 import com.github.GypsyJR777.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,20 +24,25 @@ import java.util.List;
 public class TelegramBot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
+    private boolean isTask = false;
 
     @Autowired
-    public TelegramBot(BotConfig botConfig, UserRepository userRepository) {
+    public TelegramBot(BotConfig botConfig, UserRepository userRepository, TaskRepository taskRepository) {
         this.botConfig = botConfig;
         this.userRepository = userRepository;
+        this.taskRepository = taskRepository;
 
-        List<BotCommand> listofCommands = new ArrayList<>();
-        listofCommands.add(new BotCommand("/start", "get a welcome message"));
-//        listofCommands.add(new BotCommand("/mydata", "get your data stored"));
-//        listofCommands.add(new BotCommand("/deletedata", "delete my data"));
-//        listofCommands.add(new BotCommand("/help", "info how to use this bot"));
-//        listofCommands.add(new BotCommand("/settings", "set your preferences"));
+        List<BotCommand> listOfCommands = new ArrayList<>();
+        listOfCommands.add(new BotCommand("/start", "Приветственно сообщение"));
+        listOfCommands.add(new BotCommand("/task", "Сосздайте себе цель)"));
+        listOfCommands.add(new BotCommand("/cancel", "Отмена последнего действия"));
+//        listOfCommands.add(new BotCommand("/mydata", "get your data stored"));
+//        listOfCommands.add(new BotCommand("/deletedata", "delete my data"));
+        listOfCommands.add(new BotCommand("/help", "Информация о командах босса"));
+//        listOfCommands.add(new BotCommand("/settings", "set your preferences"));
         try {
-            this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
+            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
             System.out.println("Error setting bot's command list: " + e.getMessage());
         }
@@ -43,27 +50,50 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            // Set variables
+        if (isTask) {
+            createTask(update.getMessage());
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
 
-            if (messageText.equals("/start")) {
-                String userName = update.getMessage().getChat().getUserName();
-                startCommandReceived(chatId, userName == null ? update.getMessage().getChat().getFirstName() : userName,
-                        update.getMessage());
-            }
+            switch (messageText) {
+                case "/start" -> {
+                    String userName = update.getMessage().getChat().getUserName();
+                    startCommandReceived(chatId,
+                            userName == null ? update.getMessage().getChat().getFirstName() : userName,
+                            update.getMessage());
+                }
 
-//            SendMessage message = new SendMessage();
-//
-//            message.setChatId(chat_id);
-//            message.setText(messageText);
-//
-//            try {
-//                execute(message);
-//            } catch (TelegramApiException e) {
-//                e.printStackTrace();
-//            }
+                case "/help" -> {
+                    SendMessage message = new SendMessage();
+
+                    message.setChatId(chatId);
+                    message.setText("Здесь будет помощь) (когда-нибудь)");
+
+                    try {
+                        execute(message);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                case "/task" -> {
+                    if (userRepository.findById(update.getMessage().getChatId()).isPresent()) {
+                        createTask(update.getMessage());
+                    } else {
+                        SendMessage sendMessage = new SendMessage();
+
+                        sendMessage.setChatId(update.getMessage().getChatId());
+                        sendMessage.setText("Введите команду \"/start\" для регистрации");
+
+                        try {
+                            execute(sendMessage);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -111,5 +141,30 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             userRepository.save(user);
         }
+    }
+
+    private void createTask(Message message) {
+        if (userRepository.findById(message.getChatId()).isPresent()) {
+            Task task = new Task();
+
+            task.setTask(message.getText());
+            task.setDone(false);
+            task.setUser(userRepository.findById(message.getChatId()).get());
+
+            taskRepository.save(task);
+        } else {
+            SendMessage sendMessage = new SendMessage();
+
+            sendMessage.setChatId(message.getChatId());
+            sendMessage.setText("Введите команду \"/start\" для регистрации");
+
+            try {
+                execute(sendMessage);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
+        }
+
+        isTask = false;
     }
 }
