@@ -61,9 +61,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (isTask) {
-            createTask(update.getMessage());
-        } else if (update.hasMessage() && update.getMessage().hasText()) {
+        if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
 
@@ -116,7 +114,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                 }
 
-                case "/cancel" ->  {
+                case "/cancel" -> {
                     if (!isTask) {
                         SendMessage sendMessage = new SendMessage();
 
@@ -146,6 +144,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/tasklist" -> {
                     getTaskList(update.getMessage());
+                }
+
+                default -> {
+                    if (isTask) {
+                        createTask(update.getMessage());
+                    }
                 }
             }
         }
@@ -237,7 +241,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             AtomicInteger count = new AtomicInteger(1);
 
             taskRepository.findAllByUser(user).forEach(it -> {
-                if (it.isDone()){
+                if (it.isDone()) {
                     tasks[0] += count + ") " + it.getTask() + "\t:heavy_check_mark:\n";
                 } else {
                     tasks[0] += count + ") " + it.getTask() + "\t:heavy_multiplication_x:\n";
