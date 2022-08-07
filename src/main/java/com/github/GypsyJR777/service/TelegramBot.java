@@ -36,6 +36,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             /cancel - отмена последнего действия
             /tasklist - список задач
             /help - информация о командах бота
+            /cleartasks полная очистка задач
             """;
 
     @Autowired
@@ -51,6 +52,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/cancel", "Отмена последнего действия"));
         listOfCommands.add(new BotCommand("/tasklist", "Список задач"));
         listOfCommands.add(new BotCommand("/help", "Информация о командах бота"));
+        listOfCommands.add(new BotCommand("/cleartasks", "Полная очистка задач"));
 
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
@@ -144,6 +146,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/tasklist" -> {
                     getTaskList(update.getMessage());
+                }
+
+                case "/cleartasks" -> {
+                    clearTasks(update.getMessage());
                 }
 
                 default -> {
@@ -250,7 +256,29 @@ public class TelegramBot extends TelegramLongPollingBot {
                 count.getAndIncrement();
             });
 
-            sendMessage.setText(EmojiParser.parseToUnicode(tasks[0]));
+            if (tasks[0].equals("")){
+                sendMessage.setText("У вас нет задач");
+            } else {
+                sendMessage.setText(EmojiParser.parseToUnicode(tasks[0]));
+            }
+        } else {
+            sendMessage.setText("Введите команду \"/start\" для регистрации");
+        }
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void clearTasks(Message message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(message.getChatId());
+
+        if (userRepository.findById(message.getChatId()).isPresent()) {
+            taskRepository.deleteAll(taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get()));
+            sendMessage.setText("Ваши задачи удалены");
         } else {
             sendMessage.setText("Введите команду \"/start\" для регистрации");
         }
