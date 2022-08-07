@@ -5,6 +5,7 @@ import com.github.GypsyJR777.entity.Task;
 import com.github.GypsyJR777.entity.User;
 import com.github.GypsyJR777.repository.TaskRepository;
 import com.github.GypsyJR777.repository.UserRepository;
+import com.vdurmont.emoji.EmojiParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -19,6 +20,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -26,6 +28,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private boolean isTask = false;
+    private final String HELP_MESSAGE = """
+            Я бот-помощник в ежедневных делах
+            Вот что я могу:
+            /start - регистрация пользователя
+            /task - добавление задачи
+            /cancel - отмена последнего действия
+            /tasklist - список задач
+            /help - информация о командах бота
+            """;
 
     @Autowired
     public TelegramBot(BotConfig botConfig, UserRepository userRepository, TaskRepository taskRepository) {
@@ -34,13 +45,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.taskRepository = taskRepository;
 
         List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand("/start", "Приветственно сообщение"));
-        listOfCommands.add(new BotCommand("/task", "Сосздайте себе цель)"));
+
+        listOfCommands.add(new BotCommand("/start", "Регистрация пользователя"));
+        listOfCommands.add(new BotCommand("/task", "Добавление задачи"));
         listOfCommands.add(new BotCommand("/cancel", "Отмена последнего действия"));
-//        listOfCommands.add(new BotCommand("/mydata", "get your data stored"));
-//        listOfCommands.add(new BotCommand("/deletedata", "delete my data"));
-        listOfCommands.add(new BotCommand("/help", "Информация о командах босса"));
-//        listOfCommands.add(new BotCommand("/settings", "set your preferences"));
+        listOfCommands.add(new BotCommand("/tasklist", "Список задач"));
+        listOfCommands.add(new BotCommand("/help", "Информация о командах бота"));
+
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -68,7 +79,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     SendMessage message = new SendMessage();
 
                     message.setChatId(chatId);
-                    message.setText("Здесь будет помощь) (когда-нибудь)");
+                    message.setText(HELP_MESSAGE);
 
                     try {
                         execute(message);
@@ -79,7 +90,18 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/task" -> {
                     if (userRepository.findById(update.getMessage().getChatId()).isPresent()) {
-                        createTask(update.getMessage());
+                        SendMessage sendMessage = new SendMessage();
+
+                        sendMessage.setChatId(update.getMessage().getChatId());
+                        sendMessage.setText("Напишите Вашу задача");
+
+                        try {
+                            execute(sendMessage);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+
+                        isTask = true;
                     } else {
                         SendMessage sendMessage = new SendMessage();
 
@@ -93,12 +115,45 @@ public class TelegramBot extends TelegramLongPollingBot {
                         }
                     }
                 }
+
+                case "/cancel" ->  {
+                    if (!isTask) {
+                        SendMessage sendMessage = new SendMessage();
+
+                        sendMessage.setChatId(update.getMessage().getChatId());
+                        sendMessage.setText("У Вас нет выполняемых действий");
+
+                        try {
+                            execute(sendMessage);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        isTask = false;
+
+                        SendMessage sendMessage = new SendMessage();
+
+                        sendMessage.setChatId(update.getMessage().getChatId());
+                        sendMessage.setText("Действие отменено");
+
+                        try {
+                            execute(sendMessage);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                case "/tasklist" -> {
+                    getTaskList(update.getMessage());
+                }
             }
         }
     }
 
     private void startCommandReceived(long chatId, String name, Message msg) {
-        String answer = "Привет, " + name + ", рад знакомству!";
+        String answer = "Привет, " + name + ", рад знакомству! Если Вы хотите узнать больше о моих способностях, " +
+                "то введите /help";
 
         createUser(msg);
 
@@ -144,6 +199,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void createTask(Message message) {
+        SendMessage sendMessage = new SendMessage();
+
         if (userRepository.findById(message.getChatId()).isPresent()) {
             Task task = new Task();
 
@@ -152,19 +209,52 @@ public class TelegramBot extends TelegramLongPollingBot {
             task.setUser(userRepository.findById(message.getChatId()).get());
 
             taskRepository.save(task);
-        } else {
-            SendMessage sendMessage = new SendMessage();
 
             sendMessage.setChatId(message.getChatId());
+            sendMessage.setText("Задача добавлена");
+        } else {
+            sendMessage.setChatId(message.getChatId());
             sendMessage.setText("Введите команду \"/start\" для регистрации");
-
-            try {
-                execute(sendMessage);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
         }
 
         isTask = false;
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void getTaskList(Message message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(message.getChatId());
+
+        if (userRepository.findById(message.getChatId()).isPresent()) {
+
+            User user = userRepository.findById(message.getChatId()).get();
+            final String[] tasks = {""};
+            AtomicInteger count = new AtomicInteger(1);
+
+            taskRepository.findAllByUser(user).forEach(it -> {
+                if (it.isDone()){
+                    tasks[0] += count + ") " + it.getTask() + "\t:heavy_check_mark:\n";
+                } else {
+                    tasks[0] += count + ") " + it.getTask() + "\t:heavy_multiplication_x:\n";
+                }
+
+                count.getAndIncrement();
+            });
+
+            sendMessage.setText(EmojiParser.parseToUnicode(tasks[0]));
+        } else {
+            sendMessage.setText("Введите команду \"/start\" для регистрации");
+        }
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 }
