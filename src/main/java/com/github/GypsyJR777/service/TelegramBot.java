@@ -32,6 +32,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             /task - добавление задачи
             /tasklist - список задач
             /taskdone - отметить сделанную задачу
+            /deletetask - удалить задачу
             /clearalltasks - полная очистка задач
             /cleardone - удалить сделанные задачи
             /cancel - отмена последнего действия
@@ -100,7 +101,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage.setText(
                                 startCommandReceived(userName == null ?
                                                 update.getMessage().getChat().getFirstName() : userName,
-                                update.getMessage()));
+                                        update.getMessage()));
                     }
 
                     case "/help" -> {
@@ -187,7 +188,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             sendMessage.setText(taskService.createTask(update.getMessage()));
                         } else if (isDone) {
                             sendMessage.setText(taskService.taskDone(update.getMessage()));
-                        } else if (isDelTask){
+                        } else if (isDelTask) {
                             sendMessage.setText(taskService.deleteTask(update.getMessage()));
                         }
                         falseAction(user);
