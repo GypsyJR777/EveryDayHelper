@@ -97,8 +97,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                     case "/start" -> {
                         falseAction(user);
                         String userName = update.getMessage().getChat().getUserName();
-                        sendMessage.setText(startCommandReceived(chatId,
-                                userName == null ? update.getMessage().getChat().getFirstName() : userName,
+                        sendMessage.setText(
+                                startCommandReceived(userName == null ?
+                                                update.getMessage().getChat().getFirstName() : userName,
                                 update.getMessage()));
                     }
 
@@ -216,7 +217,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private String startCommandReceived(long chatId, String name, Message msg) {
+    private String startCommandReceived(String name, Message msg) {
         String answer = "Привет, " + name + ", рад знакомству! Если Вы хотите узнать больше о моих способностях, " +
                 "то введите /help";
 
