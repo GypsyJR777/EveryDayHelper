@@ -14,5 +14,6 @@ TelegramBots
 /task - добавление задачи \
 /tasklist - список задач \
 /taskdone - отметить сделанную задачу \
-/cleartasks - полная очистка задач \
-/cleardone - удалить сделанные задачи 
+/deletetask - удалить задачу \
+/clearalltasks - полная очистка задач \
+/cleardone - удалить сделанные задачи
