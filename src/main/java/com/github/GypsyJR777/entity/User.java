@@ -21,6 +21,8 @@ public class User {
 
     private boolean isDoneTask = false;
 
+    private boolean isDelTask = false;
+
     public Long getId() {
         return id;
     }
@@ -75,5 +77,13 @@ public class User {
 
     public void setDoneTask(boolean doneTask) {
         isDoneTask = doneTask;
+    }
+
+    public boolean isDelTask() {
+        return isDelTask;
+    }
+
+    public void setDelTask(boolean delTask) {
+        isDelTask = delTask;
     }
 }
