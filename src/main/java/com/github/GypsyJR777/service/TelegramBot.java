@@ -209,7 +209,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void falseAction(User user) {
-        if (user.isCreatTask() || user.isDoneTask()) {
+        if (user.isCreatTask() || user.isDoneTask() || user.isDelTask()) {
             user.setCreatTask(false);
             user.setDoneTask(false);
             user.setDelTask(false);
