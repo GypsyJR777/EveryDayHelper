@@ -13,11 +13,9 @@ public class Task {
     @JoinColumn(name = "userId")
     private User user;
 
-    @Column(name = "task")
     private String task;
 
-    @Column(name = "isDone")
-    private boolean isDone;
+    private boolean done;
 
     public long getId() {
         return id;
@@ -44,10 +42,10 @@ public class Task {
     }
 
     public boolean isDone() {
-        return isDone;
+        return done;
     }
 
     public void setDone(boolean done) {
-        isDone = done;
+        this.done = done;
     }
 }

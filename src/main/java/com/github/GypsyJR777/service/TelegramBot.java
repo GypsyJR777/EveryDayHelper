@@ -27,16 +27,19 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
-    private boolean isTask = false;
     private final String HELP_MESSAGE = """
             Я бот-помощник в ежедневных делах
             Вот что я могу:
             /start - регистрация пользователя
             /task - добавление задачи
-            /cancel - отмена последнего действия
             /tasklist - список задач
+            /taskdone - отметить сделанную задачу
+            /cleartasks - полная очистка задач
+            /cleardone - удалить сделанные задачи
+            /cancel - отмена последнего действия
             /help - информация о командах бота
-            /cleartasks полная очистка задач
+            Если Вам интересно посмотреть на меня изнутри, то переходите по ссылке:
+            https://github.com/GypsyJR777/EveryDayHelper
             """;
 
     @Autowired
@@ -49,10 +52,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         listOfCommands.add(new BotCommand("/start", "Регистрация пользователя"));
         listOfCommands.add(new BotCommand("/task", "Добавление задачи"));
-        listOfCommands.add(new BotCommand("/cancel", "Отмена последнего действия"));
         listOfCommands.add(new BotCommand("/tasklist", "Список задач"));
-        listOfCommands.add(new BotCommand("/help", "Информация о командах бота"));
+        listOfCommands.add(new BotCommand("/taskdone", "Отметить сделанную задачу"));
         listOfCommands.add(new BotCommand("/cleartasks", "Полная очистка задач"));
+        listOfCommands.add(new BotCommand("/cleardone", "Удалить сделанные задачи"));
+        listOfCommands.add(new BotCommand("/cancel", "Отмена последнего действия"));
+        listOfCommands.add(new BotCommand("/help", "Информация о командах бота"));
 
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
@@ -67,74 +72,61 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
 
-            switch (messageText) {
-                case "/start" -> {
-                    String userName = update.getMessage().getChat().getUserName();
-                    startCommandReceived(chatId,
-                            userName == null ? update.getMessage().getChat().getFirstName() : userName,
-                            update.getMessage());
+            User user = null;
+
+            boolean isTask = false;
+            boolean isDone = false;
+
+            if (checkUser(chatId)) {
+                user = userRepository.findById(chatId).get();
+                isDone = user.isDoneTask();
+                isTask = user.isCreatTask();
+            }
+
+            if (!messageText.equals("/start") && user == null) {
+                SendMessage sendMessage = new SendMessage();
+
+                sendMessage.setChatId(chatId);
+                sendMessage.setText("Введите команду /start для регистрации");
+
+                try {
+                    execute(sendMessage);
+                } catch (TelegramApiException e) {
+                    e.printStackTrace();
                 }
-
-                case "/help" -> {
-                    SendMessage message = new SendMessage();
-
-                    message.setChatId(chatId);
-                    message.setText(HELP_MESSAGE);
-
-                    try {
-                        execute(message);
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
+            } else {
+                switch (messageText) {
+                    case "/start" -> {
+                        falseAction(user);
+                        String userName = update.getMessage().getChat().getUserName();
+                        startCommandReceived(chatId,
+                                userName == null ? update.getMessage().getChat().getFirstName() : userName,
+                                update.getMessage());
                     }
-                }
 
-                case "/task" -> {
-                    if (userRepository.findById(update.getMessage().getChatId()).isPresent()) {
-                        SendMessage sendMessage = new SendMessage();
+                    case "/help" -> {
+                        falseAction(user);
+                        SendMessage message = new SendMessage();
 
-                        sendMessage.setChatId(update.getMessage().getChatId());
-                        sendMessage.setText("Напишите Вашу задача");
-
-                        try {
-                            execute(sendMessage);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-
-                        isTask = true;
-                    } else {
-                        SendMessage sendMessage = new SendMessage();
-
-                        sendMessage.setChatId(update.getMessage().getChatId());
-                        sendMessage.setText("Введите команду \"/start\" для регистрации");
+                        message.setChatId(chatId);
+                        message.setText(HELP_MESSAGE);
 
                         try {
-                            execute(sendMessage);
+                            execute(message);
                         } catch (TelegramApiException e) {
                             e.printStackTrace();
                         }
                     }
-                }
 
-                case "/cancel" -> {
-                    if (!isTask) {
+                    case "/task" -> {
+                        falseAction(user);
                         SendMessage sendMessage = new SendMessage();
 
-                        sendMessage.setChatId(update.getMessage().getChatId());
-                        sendMessage.setText("У Вас нет выполняемых действий");
+                        sendMessage.setChatId(chatId);
+                        sendMessage.setText("Напишите Вашу задачу");
 
-                        try {
-                            execute(sendMessage);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        isTask = false;
-
-                        SendMessage sendMessage = new SendMessage();
-
-                        sendMessage.setChatId(update.getMessage().getChatId());
-                        sendMessage.setText("Действие отменено");
+                        user.setCreatTask(true);
+                        userRepository.save(user);
 
                         try {
                             execute(sendMessage);
@@ -142,22 +134,82 @@ public class TelegramBot extends TelegramLongPollingBot {
                             e.printStackTrace();
                         }
                     }
-                }
 
-                case "/tasklist" -> {
-                    getTaskList(update.getMessage());
-                }
+                    case "/cancel" -> {
+                        SendMessage sendMessage = new SendMessage();
 
-                case "/cleartasks" -> {
-                    clearTasks(update.getMessage());
-                }
+                        sendMessage.setChatId(chatId);
+                        if (!isTask && !isDone) {
+                            sendMessage.setText("У Вас нет выполняемых действий");
+                        } else {
+                            falseAction(user);
 
-                default -> {
-                    if (isTask) {
-                        createTask(update.getMessage());
+                            sendMessage.setText("Действие отменено");
+                        }
+
+                        try {
+                            execute(sendMessage);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    case "/tasklist" -> {
+                        falseAction(user);
+                        getTaskList(update.getMessage());
+                    }
+
+                    case "/cleartasks" -> {
+                        falseAction(user);
+                        clearTasks(update.getMessage());
+                    }
+
+                    case "/taskdone" -> {
+                        falseAction(user);
+                        SendMessage sendMessage = new SendMessage();
+
+                        sendMessage.setChatId(chatId);
+                        sendMessage.setText("Напишите цифру сделанной задачи");
+
+                        try {
+                            execute(sendMessage);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+
+                        getTaskList(update.getMessage());
+
+                        user.setDoneTask(true);
+                        userRepository.save(user);
+                    }
+
+                    case "/cleardone" -> {
+                        falseAction(user);
+                        clearDoneTasks(update.getMessage());
+                    }
+
+                    default -> {
+                        if (isTask) {
+                            createTask(update.getMessage());
+                        } else if (isDone) {
+                            taskDone(update.getMessage());
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private boolean checkUser(Long chatId) {
+        return userRepository.findById(chatId).isPresent();
+    }
+
+    private void falseAction(User user) {
+        if (user.isCreatTask() || user.isDoneTask()) {
+            user.setCreatTask(false);
+            user.setDoneTask(false);
+
+            userRepository.save(user);
         }
     }
 
@@ -211,23 +263,19 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void createTask(Message message) {
         SendMessage sendMessage = new SendMessage();
 
-        if (userRepository.findById(message.getChatId()).isPresent()) {
-            Task task = new Task();
+        Task task = new Task();
 
-            task.setTask(message.getText());
-            task.setDone(false);
-            task.setUser(userRepository.findById(message.getChatId()).get());
+        task.setTask(message.getText());
+        task.setDone(false);
+        task.setUser(userRepository.findById(message.getChatId()).get());
 
-            taskRepository.save(task);
+        taskRepository.save(task);
 
-            sendMessage.setChatId(message.getChatId());
-            sendMessage.setText("Задача добавлена");
-        } else {
-            sendMessage.setChatId(message.getChatId());
-            sendMessage.setText("Введите команду \"/start\" для регистрации");
-        }
+        sendMessage.setChatId(message.getChatId());
+        sendMessage.setText("Задача добавлена");
 
-        isTask = false;
+
+        falseAction(task.getUser());
 
         try {
             execute(sendMessage);
@@ -240,29 +288,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(message.getChatId());
 
-        if (userRepository.findById(message.getChatId()).isPresent()) {
+        User user = userRepository.findById(message.getChatId()).get();
+        final String[] tasks = {""};
+        AtomicInteger count = new AtomicInteger(1);
 
-            User user = userRepository.findById(message.getChatId()).get();
-            final String[] tasks = {""};
-            AtomicInteger count = new AtomicInteger(1);
-
-            taskRepository.findAllByUser(user).forEach(it -> {
-                if (it.isDone()) {
-                    tasks[0] += count + ") " + it.getTask() + "\t:heavy_check_mark:\n";
-                } else {
-                    tasks[0] += count + ") " + it.getTask() + "\t:heavy_multiplication_x:\n";
-                }
-
-                count.getAndIncrement();
-            });
-
-            if (tasks[0].equals("")){
-                sendMessage.setText("У вас нет задач");
+        taskRepository.findAllByUser(user).forEach(it -> {
+            if (it.isDone()) {
+                tasks[0] += count + ") " + it.getTask() + "\t:heavy_check_mark:\n";
             } else {
-                sendMessage.setText(EmojiParser.parseToUnicode(tasks[0]));
+                tasks[0] += count + ") " + it.getTask() + "\t:heavy_multiplication_x:\n";
             }
+
+            count.getAndIncrement();
+        });
+
+        if (tasks[0].equals("")) {
+            sendMessage.setText("У вас нет задач");
         } else {
-            sendMessage.setText("Введите команду \"/start\" для регистрации");
+            sendMessage.setText(EmojiParser.parseToUnicode(tasks[0]));
         }
 
         try {
@@ -276,12 +319,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(message.getChatId());
 
-        if (userRepository.findById(message.getChatId()).isPresent()) {
-            taskRepository.deleteAll(taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get()));
-            sendMessage.setText("Ваши задачи удалены");
-        } else {
-            sendMessage.setText("Введите команду \"/start\" для регистрации");
-        }
+        taskRepository.deleteAll(taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get()));
+        sendMessage.setText("Ваши задачи удалены");
+
 
         try {
             execute(sendMessage);
@@ -289,4 +329,43 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+
+    private void taskDone(Message message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(message.getChatId());
+
+        int numTask = Integer.parseInt(message.getText()) - 1;
+        List<Task> tasks = taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get());
+        Task task = tasks.get(numTask);
+
+        task.setDone(true);
+        taskRepository.save(task);
+
+        sendMessage.setText("Задача отмечена");
+
+        falseAction(task.getUser());
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void clearDoneTasks(Message message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(message.getChatId());
+
+        taskRepository.deleteAll(taskRepository.findAllByUserAndDone(
+                userRepository.findById(message.getChatId()).get(), true));
+        sendMessage.setText("Ваши задачи удалены");
+
+        sendMessage.setText("Сделанные задачи удалены");
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

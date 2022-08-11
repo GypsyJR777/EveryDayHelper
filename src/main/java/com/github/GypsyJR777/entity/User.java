@@ -17,6 +17,10 @@ public class User {
 
     private Timestamp registered;
 
+    private boolean isCreatTask = false;
+
+    private boolean isDoneTask = false;
+
     public Long getId() {
         return id;
     }
@@ -55,5 +59,21 @@ public class User {
 
     public void setRegistered(Timestamp registeredAt) {
         this.registered = registeredAt;
+    }
+
+    public boolean isCreatTask() {
+        return isCreatTask;
+    }
+
+    public void setCreatTask(boolean creatTask) {
+        isCreatTask = creatTask;
+    }
+
+    public boolean isDoneTask() {
+        return isDoneTask;
+    }
+
+    public void setDoneTask(boolean doneTask) {
+        isDoneTask = doneTask;
     }
 }
