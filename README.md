@@ -10,7 +10,7 @@ JPA,
 SQL,
 TelegramBots
 
-# Work with tasks
+# Actions with tasks
 /task - добавление задачи \
 /tasklist - список задач \
 /taskdone - отметить сделанную задачу \
