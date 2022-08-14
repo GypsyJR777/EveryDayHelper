@@ -91,12 +91,14 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             sendMessage.setChatId(chatId);
 
-            if (!messageText.equals("/start") && user == null) {
+            if (user == null && !messageText.equals("/start")) {
                 sendMessage.setText("Введите команду /start для регистрации");
             } else {
+                System.out.println(user != null? user.getFirstName() + " " + user.getUserName() :
+                        update.getMessage().getChat().getFirstName());
+
                 switch (messageText) {
                     case "/start" -> {
-                        falseAction(user);
                         String userName = update.getMessage().getChat().getUserName();
                         sendMessage.setText(
                                 startCommandReceived(userName == null ?
