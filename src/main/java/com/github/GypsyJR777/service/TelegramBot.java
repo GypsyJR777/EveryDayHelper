@@ -1,6 +1,7 @@
 package com.github.GypsyJR777.service;
 
 import com.github.GypsyJR777.config.BotConfig;
+import com.github.GypsyJR777.entity.Status;
 import com.github.GypsyJR777.entity.User;
 import com.github.GypsyJR777.repository.TaskRepository;
 import com.github.GypsyJR777.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.sql.Timestamp;
@@ -25,6 +27,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final TaskService taskService;
+    private final InlineKeyboard inlineKeyboard;
     private final String HELP_MESSAGE = """
             Я бот-помощник в ежедневных делах
             Вот что я могу:
@@ -43,11 +46,13 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     public TelegramBot(BotConfig botConfig, UserRepository userRepository,
-                       TaskRepository taskRepository, TaskService taskService) {
+                       TaskRepository taskRepository, TaskService taskService,
+                       InlineKeyboard inlineKeyboard) {
         this.botConfig = botConfig;
         this.userRepository = userRepository;
         this.taskRepository = taskRepository;
         this.taskService = taskService;
+        this.inlineKeyboard = inlineKeyboard;
 
         List<BotCommand> listOfCommands = new ArrayList<>();
 
@@ -70,140 +75,162 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+        SendMessage sendMessage = new SendMessage();
+
         if (update.hasMessage() && update.getMessage().hasText()) {
-            String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
-
-            User user = null;
-
-            boolean isTask = false;
-            boolean isDone = false;
-            boolean isDelTask = false;
-
-            if (checkUser(chatId)) {
-                user = userRepository.findById(chatId).get();
-                isDone = user.isDoneTask();
-                isTask = user.isCreatTask();
-                isDelTask = user.isDelTask();
-            }
-
-            SendMessage sendMessage = new SendMessage();
-
-            sendMessage.setChatId(chatId);
-
-            if (user == null && !messageText.equals("/start")) {
-                sendMessage.setText("Введите команду /start для регистрации");
-            } else {
-                System.out.println(user != null? user.getFirstName() + " " + user.getUserName() :
-                        update.getMessage().getChat().getFirstName());
-
-                switch (messageText) {
-                    case "/start" -> {
-                        String userName = update.getMessage().getChat().getUserName();
-                        sendMessage.setText(
-                                startCommandReceived(userName == null ?
-                                                update.getMessage().getChat().getFirstName() : userName,
-                                        update.getMessage()));
-                    }
-
-                    case "/help" -> {
-                        falseAction(user);
-
-                        sendMessage.setText(HELP_MESSAGE);
-                    }
-
-                    case "/task" -> {
-                        falseAction(user);
-
-                        sendMessage.setText("Напишите Вашу задачу");
-
-                        user.setCreatTask(true);
-                        userRepository.save(user);
-                    }
-
-                    case "/cancel" -> {
-
-                        if (!isTask && !isDone) {
-                            sendMessage.setText("У Вас нет выполняемых действий");
-                        } else {
-                            falseAction(user);
-
-                            sendMessage.setText("Действие отменено");
-                        }
-
-                        try {
-                            execute(sendMessage);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    case "/tasklist" -> {
-                        falseAction(user);
-                        sendMessage.setText(taskService.getTaskList(update.getMessage()));
-                    }
-
-                    case "/clearalltasks" -> {
-                        falseAction(user);
-                        sendMessage.setText(taskService.clearTasks(update.getMessage()));
-                    }
-
-                    case "/taskdone" -> {
-                        falseAction(user);
-                        sendMessage.setText("Напишите цифру сделанной задачи");
-
-                        try {
-                            execute(sendMessage);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-
-                        sendMessage.setText(taskService.getTaskList(update.getMessage()));
-
-                        user.setDoneTask(true);
-                        userRepository.save(user);
-                    }
-
-                    case "/cleardone" -> {
-                        falseAction(user);
-                        sendMessage.setText(taskService.clearDoneTasks(update.getMessage()));
-                    }
-
-                    case "/deletetask" -> {
-                        falseAction(user);
-                        sendMessage.setText("Напишите цифру задачи, которую Вы хотите удалить");
-
-                        try {
-                            execute(sendMessage);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-
-                        sendMessage.setText(taskService.getTaskList(update.getMessage()));
-
-                        user.setDelTask(true);
-                        userRepository.save(user);
-                    }
-
-                    default -> {
-                        if (isTask) {
-                            sendMessage.setText(taskService.createTask(update.getMessage()));
-                        } else if (isDone) {
-                            sendMessage.setText(taskService.taskDone(update.getMessage()));
-                        } else if (isDelTask) {
-                            sendMessage.setText(taskService.deleteTask(update.getMessage()));
-                        }
-                        falseAction(user);
-                    }
-                }
-            }
-
-            try {
-                execute(sendMessage);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
+            sendMessage = getByMessage(update.getMessage());
+        } else if (update.hasCallbackQuery()) {
+            System.out.println("HERE");
+            if (update.getCallbackQuery().getData().equals("goTask")) {
+                System.out.println("HERE");
             }
         }
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private SendMessage getByMessage(Message message) {
+        String messageText = message.getText();
+        long chatId = message.getChatId();
+
+        User user = null;
+
+        boolean isTask = false;
+        boolean isDone = false;
+        boolean isDelTask = false;
+        Status status = Status.START;
+
+        if (checkUser(chatId)) {
+            user = userRepository.findById(chatId).get();
+            isDone = user.isDoneTask();
+            isTask = user.isCreatTask();
+            isDelTask = user.isDelTask();
+            status = user.getPosition();
+        }
+
+        SendMessage sendMessage = new SendMessage();
+
+        sendMessage.setChatId(chatId);
+
+        if (user == null && !messageText.equals("/start")) {
+            sendMessage.setText("Введите команду /start для регистрации");
+        } else {
+            System.out.println(user != null ? user.getFirstName() + " " + user.getUserName() :
+                    message.getChat().getFirstName());
+
+            switch (messageText) {
+                case "/start" -> {
+                    String userName = message.getChat().getUserName();
+                    sendMessage.setText(
+                            startCommandReceived(userName == null ? message.getChat().getFirstName() : userName,
+                                    message));
+                }
+
+                case "/help" -> {
+                    falseAction(user);
+
+                    sendMessage.setText(HELP_MESSAGE);
+                }
+
+                case "/task" -> {
+                    falseAction(user);
+
+                    sendMessage.setText("Напишите Вашу задачу");
+
+                    user.setCreatTask(true);
+                    userRepository.save(user);
+                }
+
+                case "/cancel" -> {
+                    if (!isTask && !isDone) {
+                        sendMessage.setText("У Вас нет выполняемых действий");
+                    } else {
+                        falseAction(user);
+
+                        sendMessage.setText("Действие отменено");
+                    }
+                }
+
+                case "/tasklist" -> {
+                    falseAction(user);
+                    sendMessage.setText(taskService.getTaskList(message));
+                }
+
+                case "/clearalltasks" -> {
+                    falseAction(user);
+                    sendMessage.setText(taskService.clearTasks(message));
+                }
+
+                case "/taskdone" -> {
+                    falseAction(user);
+                    sendMessage.setText("Напишите цифру сделанной задачи");
+
+                    try {
+                        execute(sendMessage);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+
+                    sendMessage.setText(taskService.getTaskList(message));
+
+                    user.setDoneTask(true);
+                    userRepository.save(user);
+                }
+
+                case "/cleardone" -> {
+                    falseAction(user);
+                    sendMessage.setText(taskService.clearDoneTasks(message));
+                }
+
+                case "/deletetask" -> {
+                    falseAction(user);
+                    sendMessage.setText("Напишите цифру задачи, которую Вы хотите удалить");
+
+                    try {
+                        execute(sendMessage);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+
+                    sendMessage.setText(taskService.getTaskList(message));
+
+                    user.setDelTask(true);
+                    userRepository.save(user);
+                }
+
+                default -> {
+                    if (isTask) {
+                        sendMessage.setText(taskService.createTask(message));
+                    } else if (isDone) {
+                        sendMessage.setText(taskService.taskDone(message));
+                    } else if (isDelTask) {
+                        sendMessage.setText(taskService.deleteTask(message));
+                    }
+                    falseAction(user);
+                }
+            }
+        }
+
+        sendMessage.setReplyMarkup(getInlineKeyboard(status));
+
+        return sendMessage;
+    }
+
+    private InlineKeyboardMarkup getInlineKeyboard(Status status) {
+        switch (status) {
+            case START -> {
+                return inlineKeyboard.getStartKeyboard();
+            }
+            case TASK -> {
+                return inlineKeyboard.getTaskKeyboard();
+            }
+        }
+
+        return null;
     }
 
     private boolean checkUser(Long chatId) {
