@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
@@ -78,12 +79,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
 
         if (update.hasMessage() && update.getMessage().hasText()) {
-            sendMessage = getByMessage(update.getMessage());
+            sendMessage = getByMessage(update.getMessage(), null);
         } else if (update.hasCallbackQuery()) {
-            System.out.println("HERE");
-            if (update.getCallbackQuery().getData().equals("goTask")) {
-                System.out.println("HERE");
-            }
+            sendMessage = getByMessage(update.getCallbackQuery().getMessage(), update.getCallbackQuery());
         }
 
         try {
@@ -93,9 +91,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private SendMessage getByMessage(Message message) {
-        String messageText = message.getText();
-        long chatId = message.getChatId();
+    private SendMessage getByMessage(Message message, CallbackQuery callbackQuery) {
+        String messageText = callbackQuery != null ? callbackQuery.getData() : message.getText();
+        long chatId = callbackQuery != null ? callbackQuery.getMessage().getChatId() : message.getChatId();
+
+        System.out.println(messageText + " : " + chatId);
 
         User user = null;
 
@@ -111,6 +111,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             isDelTask = user.isDelTask();
             status = user.getPosition();
         }
+
+        System.out.println(status);
 
         SendMessage sendMessage = new SendMessage();
 
@@ -157,12 +159,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/tasklist" -> {
                     falseAction(user);
-                    sendMessage.setText(taskService.getTaskList(message));
+                    sendMessage.setText(taskService.getTaskList(chatId));
                 }
 
                 case "/clearalltasks" -> {
                     falseAction(user);
-                    sendMessage.setText(taskService.clearTasks(message));
+                    sendMessage.setText(taskService.clearTasks(chatId));
                 }
 
                 case "/taskdone" -> {
@@ -175,7 +177,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         e.printStackTrace();
                     }
 
-                    sendMessage.setText(taskService.getTaskList(message));
+                    sendMessage.setText(taskService.getTaskList(chatId));
 
                     user.setDoneTask(true);
                     userRepository.save(user);
@@ -183,7 +185,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/cleardone" -> {
                     falseAction(user);
-                    sendMessage.setText(taskService.clearDoneTasks(message));
+                    sendMessage.setText(taskService.clearDoneTasks(chatId));
                 }
 
                 case "/deletetask" -> {
@@ -196,19 +198,35 @@ public class TelegramBot extends TelegramLongPollingBot {
                         e.printStackTrace();
                     }
 
-                    sendMessage.setText(taskService.getTaskList(message));
+                    sendMessage.setText(taskService.getTaskList(chatId));
 
                     user.setDelTask(true);
                     userRepository.save(user);
                 }
 
+                case "/back" -> {
+                    user.setPosition(Status.START);
+                    status = Status.START;
+                    userRepository.save(user);
+
+                    sendMessage.setText("Главное меню:");
+                }
+
+                case "goTask" -> {
+                    user.setPosition(Status.TASK);
+                    status = Status.TASK;
+                    userRepository.save(user);
+
+                    sendMessage.setText("Задачи:");
+                }
+
                 default -> {
                     if (isTask) {
-                        sendMessage.setText(taskService.createTask(message));
+                        sendMessage.setText(taskService.createTask(messageText, chatId));
                     } else if (isDone) {
-                        sendMessage.setText(taskService.taskDone(message));
+                        sendMessage.setText(taskService.taskDone(messageText, chatId));
                     } else if (isDelTask) {
-                        sendMessage.setText(taskService.deleteTask(message));
+                        sendMessage.setText(taskService.deleteTask(messageText, chatId));
                     }
                     falseAction(user);
                 }

@@ -23,20 +23,20 @@ public class TaskService {
         this.taskRepository = taskRepository;
     }
 
-    public String createTask(Message message) {
+    public String createTask(String text, Long chatId) {
         Task task = new Task();
 
-        task.setTask(message.getText());
+        task.setTask(text);
         task.setDone(false);
-        task.setUser(userRepository.findById(message.getChatId()).get());
+        task.setUser(userRepository.findById(chatId).get());
 
         taskRepository.save(task);
 
         return "Задача добавлена";
     }
 
-    public String getTaskList(Message message) {
-        User user = userRepository.findById(message.getChatId()).get();
+    public String getTaskList(Long chatId) {
+        User user = userRepository.findById(chatId).get();
         final String[] tasks = {""};
         AtomicInteger count = new AtomicInteger(1);
 
@@ -61,15 +61,15 @@ public class TaskService {
         return text;
     }
 
-    public String clearTasks(Message message) {
-        taskRepository.deleteAll(taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get()));
+    public String clearTasks(Long chatId) {
+        taskRepository.deleteAll(taskRepository.findAllByUser(userRepository.findById(chatId).get()));
 
         return "Ваши задачи удалены";
     }
 
-    public String taskDone(Message message) {
-        int numTask = Integer.parseInt(message.getText()) - 1;
-        List<Task> tasks = taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get());
+    public String taskDone(String text, Long chatId) {
+        int numTask = Integer.parseInt(text) - 1;
+        List<Task> tasks = taskRepository.findAllByUser(userRepository.findById(chatId).get());
         Task task = tasks.get(numTask);
 
         task.setDone(true);
@@ -78,17 +78,17 @@ public class TaskService {
         return "Задача отмечена";
     }
 
-    public String clearDoneTasks(Message message) {
+    public String clearDoneTasks(Long chatId) {
         taskRepository.deleteAll(taskRepository.findAllByUserAndDone(
-                userRepository.findById(message.getChatId()).get(), true));
+                userRepository.findById(chatId).get(), true));
 
 
         return "Сделанные задачи удалены";
     }
 
-    public String deleteTask(Message message) {
-        int numTask = Integer.parseInt(message.getText()) - 1;
-        List<Task> tasks = taskRepository.findAllByUser(userRepository.findById(message.getChatId()).get());
+    public String deleteTask(String text, Long chatId) {
+        int numTask = Integer.parseInt(text) - 1;
+        List<Task> tasks = taskRepository.findAllByUser(userRepository.findById(chatId).get());
         Task task = tasks.get(numTask);
 
         taskRepository.delete(task);
