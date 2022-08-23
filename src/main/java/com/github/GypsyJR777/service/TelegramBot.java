@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -78,6 +79,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         SendMessage sendMessage = new SendMessage();
 
+        System.out.println(update.getCallbackQuery().getId());
+
         if (update.hasMessage() && update.getMessage().hasText()) {
             sendMessage = getByMessage(update.getMessage(), null);
         } else if (update.hasCallbackQuery()) {
@@ -85,7 +88,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
         try {
-            execute(sendMessage);
+            EditMessageText editMessageText = new EditMessageText();
+            editMessageText.setChatId(update.getCallbackQuery().getMessage().getChatId());
+            editMessageText.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
+            editMessageText.setText("qwerty");
+            editMessageText.setReplyMarkup((InlineKeyboardMarkup) sendMessage.getReplyMarkup());
+
+            execute(editMessageText);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
