@@ -79,22 +79,27 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         SendMessage sendMessage = new SendMessage();
 
-        System.out.println(update.getCallbackQuery().getId());
+        EditMessageText editMessageText = null;
+
 
         if (update.hasMessage() && update.getMessage().hasText()) {
             sendMessage = getByMessage(update.getMessage(), null);
         } else if (update.hasCallbackQuery()) {
             sendMessage = getByMessage(update.getCallbackQuery().getMessage(), update.getCallbackQuery());
+
+            editMessageText = new EditMessageText();
+            editMessageText.setChatId(update.getCallbackQuery().getMessage().getChatId());
+            editMessageText.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
+            editMessageText.setText(sendMessage.getText());
+            editMessageText.setReplyMarkup((InlineKeyboardMarkup) sendMessage.getReplyMarkup());
         }
 
         try {
-            EditMessageText editMessageText = new EditMessageText();
-            editMessageText.setChatId(update.getCallbackQuery().getMessage().getChatId());
-            editMessageText.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-            editMessageText.setText("qwerty");
-            editMessageText.setReplyMarkup((InlineKeyboardMarkup) sendMessage.getReplyMarkup());
-
-            execute(editMessageText);
+            if (editMessageText == null) {
+                execute(sendMessage);
+            } else {
+                execute(editMessageText);
+            }
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -178,16 +183,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/taskdone" -> {
                     falseAction(user);
-                    sendMessage.setText("Напишите цифру сделанной задачи");
-
-                    try {
-                        execute(sendMessage);
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
-                    }
-
-                    sendMessage.setText(taskService.getTaskList(chatId));
-
+                    sendMessage.setText("Напишите цифру сделанной задачи\n" + taskService.getTaskList(chatId));
                     user.setDoneTask(true);
                     userRepository.save(user);
                 }
