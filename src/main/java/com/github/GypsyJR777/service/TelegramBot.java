@@ -109,8 +109,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         String messageText = callbackQuery != null ? callbackQuery.getData() : message.getText();
         long chatId = callbackQuery != null ? callbackQuery.getMessage().getChatId() : message.getChatId();
 
-        System.out.println(messageText + " : " + chatId);
-
         User user = null;
 
         boolean isTask = false;
@@ -126,7 +124,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             status = user.getPosition();
         }
 
-        System.out.println(status);
+        if (status == null) {
+            status = Status.START;
+            user.setPosition(Status.START);
+            userRepository.save(user);
+        }
 
         SendMessage sendMessage = new SendMessage();
 
@@ -195,15 +197,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "/deletetask" -> {
                     falseAction(user);
-                    sendMessage.setText("Напишите цифру задачи, которую Вы хотите удалить");
-
-                    try {
-                        execute(sendMessage);
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
-                    }
-
-                    sendMessage.setText(taskService.getTaskList(chatId));
+                    sendMessage.setText("Напишите цифру задачи, которую Вы хотите удалить:\n" +
+                            taskService.getTaskList(chatId));
 
                     user.setDelTask(true);
                     userRepository.save(user);
