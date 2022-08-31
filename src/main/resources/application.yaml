@@ -1,7 +1,20 @@
 spring:
+  profiles:
+    active: dev
+
   jpa:
     hibernate:
       ddl-auto: update
 
-  profiles:
-    active: dev
+  datasource:
+    url: your_address
+    username: user
+    password: password
+
+bot:
+  botName: botName
+  botToken: botToken
+
+weather:
+  key: apiKey
+  url: apiURL

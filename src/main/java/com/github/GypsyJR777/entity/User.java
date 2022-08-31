@@ -28,5 +28,7 @@ public class User {
 
     private boolean isDelTask = false;
 
+    private boolean isWeather = false;
+
     private Status position = Status.START;
 }
