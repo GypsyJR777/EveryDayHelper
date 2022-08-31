@@ -138,7 +138,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendMessage.setText("Введите команду /start для регистрации");
         } else {
             System.out.println(user != null ? user.getFirstName() + " " + user.getUserName() :
-                    message.getChat().getFirstName());
+                    message.getChat().getFirstName() + " : " + messageText);
 
             switch (messageText) {
                 case "/start" -> {
@@ -243,7 +243,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (user.isDelTask()) {
                         sendMessage.setText(taskService.deleteTask(messageText, chatId));
                     } else if (user.isWeather()){
-                        sendMessage.setText(weatherParser.getWeatherByCity(messageText).toString());
+                        sendMessage.setText(weatherParser.getWeatherByCity(messageText));
                     }
                     falseAction(user);
                 }
