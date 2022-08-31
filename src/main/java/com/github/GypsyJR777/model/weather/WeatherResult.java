@@ -22,7 +22,7 @@ public class WeatherResult {
 
     @Override
     public String toString() {
-        return "Погода в городе " + name + ": " + weather[0].getDescription() + " " +  (int) main.getTemp() +
+        return "Погода в городе " + name + ": " + weather[0].getDescription() + ", температура - " +  (int) main.getTemp() +
                 ", чувствуется на: " + (int) main.getFeels_like();
     }
 }
