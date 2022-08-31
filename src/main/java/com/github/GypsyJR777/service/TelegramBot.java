@@ -245,6 +245,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (user.isWeather()){
                         sendMessage.setText(weatherParser.getWeatherByCity(messageText));
                     }
+
                     falseAction(user);
                 }
             }
@@ -276,7 +277,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void falseAction(User user) {
-        if (user.isCreatTask() || user.isDoneTask() || user.isDelTask()) {
+        if (user.isCreatTask() || user.isDoneTask() || user.isDelTask() || user.isWeather()) {
             user.setCreatTask(false);
             user.setDoneTask(false);
             user.setDelTask(false);
