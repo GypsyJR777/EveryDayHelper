@@ -14,8 +14,13 @@ public class InlineKeyboard {
         inlineKeyboardButton1.setText("Задачи");
         inlineKeyboardButton1.setCallbackData("goTask");
 
+        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
+        inlineKeyboardButton2.setText("Погода");
+        inlineKeyboardButton2.setCallbackData("goWeather");
+
         List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
         keyboardButtonsRow1.add(inlineKeyboardButton1);
+        keyboardButtonsRow1.add(inlineKeyboardButton2);
 
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         rowList.add(keyboardButtonsRow1);
@@ -75,6 +80,31 @@ public class InlineKeyboard {
         rowList.add(keyboardButtonsRow2);
         rowList.add(keyboardButtonsRow3);
         rowList.add(keyboardButtonsRow4);
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        inlineKeyboardMarkup.setKeyboard(rowList);
+
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup getWeatherKeyboard() {
+        InlineKeyboardButton buttonWeatherToday = new InlineKeyboardButton();
+        buttonWeatherToday.setText("Посмотреть погоду");
+        buttonWeatherToday.setCallbackData("/weather");
+
+        InlineKeyboardButton buttonBack = new InlineKeyboardButton();
+        buttonBack.setText("Назад");
+        buttonBack.setCallbackData("/back");
+
+        List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
+        keyboardButtonsRow1.add(buttonWeatherToday);
+
+        List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
+        keyboardButtonsRow2.add(buttonBack);
+
+        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
+        rowList.add(keyboardButtonsRow1);
+        rowList.add(keyboardButtonsRow2);
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         inlineKeyboardMarkup.setKeyboard(rowList);
