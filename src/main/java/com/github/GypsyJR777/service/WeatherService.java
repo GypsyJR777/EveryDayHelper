@@ -7,11 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public class WeatherParser {
+public class WeatherService {
     private WeatherConfig weatherConfig;
 
     @Autowired
-    public WeatherParser(WeatherConfig weatherConfig) {
+    public WeatherService(WeatherConfig weatherConfig) {
         this.weatherConfig = weatherConfig;
     }
 

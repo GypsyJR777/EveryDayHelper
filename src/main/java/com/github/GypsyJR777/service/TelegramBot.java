@@ -1,7 +1,7 @@
 package com.github.GypsyJR777.service;
 
 import com.github.GypsyJR777.config.BotConfig;
-import com.github.GypsyJR777.entity.Status;
+import com.github.GypsyJR777.entity.enums.Status;
 import com.github.GypsyJR777.entity.User;
 import com.github.GypsyJR777.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final UserRepository userRepository;
     private final TaskService taskService;
     private final InlineKeyboard inlineKeyboard;
-    private final WeatherParser weatherParser;
+    private final WeatherService weatherService;
+    private final CurrencyService currencyService;
     private final String HELP_MESSAGE = """
             Я бот-помощник в ежедневных делах
             Вот что я могу:
@@ -48,12 +49,13 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     public TelegramBot(BotConfig botConfig, UserRepository userRepository, TaskService taskService,
-                       InlineKeyboard inlineKeyboard, WeatherParser weatherParser) {
+                       InlineKeyboard inlineKeyboard, WeatherService weatherService, CurrencyService currencyService) {
         this.botConfig = botConfig;
         this.userRepository = userRepository;
         this.taskService = taskService;
         this.inlineKeyboard = inlineKeyboard;
-        this.weatherParser = weatherParser;
+        this.weatherService = weatherService;
+        this.currencyService = currencyService;
 
         List<BotCommand> listOfCommands = new ArrayList<>();
 
@@ -80,7 +82,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
 
         EditMessageText editMessageText = null;
-
 
         if (update.hasMessage() && update.getMessage().hasText()) {
             sendMessage = getByMessage(update.getMessage(), null);
@@ -236,6 +237,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage.setText("Погода:");
                 }
 
+                case "goCurrency" -> {
+                    user.setPosition(Status.CURRENCY);
+                    userRepository.save(user);
+
+                    sendMessage.setText("Валюта:");
+                }
+
                 default -> {
                     if (user.isCreatTask()) {
                         sendMessage.setText(taskService.createTask(messageText, chatId));
@@ -244,7 +252,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } else if (user.isDelTask()) {
                         sendMessage.setText(taskService.deleteTask(messageText, chatId));
                     } else if (user.isWeather()){
-                        sendMessage.setText(weatherParser.getWeatherByCity(messageText).toString());
+                        sendMessage.setText(weatherService.getWeatherByCity(messageText).toString());
                     }
                     falseAction(user);
                 }
@@ -266,6 +274,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             case WEATHER -> {
                 return inlineKeyboard.getWeatherKeyboard();
+            }
+            case CURRENCY -> {
+                return inlineKeyboard.getCurrencyKeyboard();
             }
         }
 

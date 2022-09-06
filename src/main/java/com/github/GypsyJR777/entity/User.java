@@ -1,5 +1,6 @@
 package com.github.GypsyJR777.entity;
 
+import com.github.GypsyJR777.entity.enums.Status;
 import lombok.Getter;
 import lombok.Setter;
 
