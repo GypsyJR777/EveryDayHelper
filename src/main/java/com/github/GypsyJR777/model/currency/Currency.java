@@ -2,7 +2,7 @@ package com.github.GypsyJR777.model.currency;
 
 public class Currency {
     private Integer error;
-    private String errorMessage;
+    private String error_message;
     private Double amount;
 
     public Integer getError() {
@@ -13,12 +13,12 @@ public class Currency {
         this.error = error;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
+    public String getError_message() {
+        return error_message;
     }
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public void setError_message(String error_message) {
+        this.error_message = error_message;
     }
 
     public Double getAmount() {
@@ -27,5 +27,14 @@ public class Currency {
 
     public void setAmount(Double amount) {
         this.amount = amount;
+    }
+
+    @Override
+    public String toString() {
+        return "Currency{" +
+                "error=" + error +
+                ", errorMessage='" + error_message + '\'' +
+                ", amount=" + amount +
+                '}';
     }
 }

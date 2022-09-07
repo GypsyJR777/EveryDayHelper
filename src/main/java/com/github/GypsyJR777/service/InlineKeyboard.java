@@ -126,8 +126,8 @@ public class InlineKeyboard {
         usdRub.setCallbackData("/usdrub");
 
         InlineKeyboardButton eurRub = new InlineKeyboardButton();
-        usdRub.setText("EUR/RUB");
-        usdRub.setCallbackData("/eurrub");
+        eurRub.setText("EUR/RUB");
+        eurRub.setCallbackData("/eurrub");
 
         InlineKeyboardButton buttonBack = new InlineKeyboardButton();
         buttonBack.setText("Назад");
