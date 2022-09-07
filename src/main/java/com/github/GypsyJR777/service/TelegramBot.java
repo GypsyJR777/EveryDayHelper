@@ -1,8 +1,9 @@
 package com.github.GypsyJR777.service;
 
 import com.github.GypsyJR777.config.BotConfig;
-import com.github.GypsyJR777.entity.Status;
+import com.github.GypsyJR777.entity.enums.Status;
 import com.github.GypsyJR777.entity.User;
+import com.github.GypsyJR777.model.currency.Currency;
 import com.github.GypsyJR777.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final UserRepository userRepository;
     private final TaskService taskService;
     private final InlineKeyboard inlineKeyboard;
-    private final WeatherParser weatherParser;
+    private final WeatherService weatherService;
+    private final CurrencyService currencyService;
     private final String HELP_MESSAGE = """
             Я бот-помощник в ежедневных делах
             Вот что я могу:
@@ -40,6 +42,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             /clearalltasks - полная очистка задач
             /cleardone - удалить сделанные задачи
             /weather - посмотреть погоду в определенном городе
+            /usdrub - посмотреть курс доллара
+            /eurrub - посмотреть курс евро
             /cancel - отмена последнего действия
             /help - информация о командах бота
             Если Вам интересно посмотреть на меня изнутри, то переходите по ссылке:
@@ -48,12 +52,13 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     public TelegramBot(BotConfig botConfig, UserRepository userRepository, TaskService taskService,
-                       InlineKeyboard inlineKeyboard, WeatherParser weatherParser) {
+                       InlineKeyboard inlineKeyboard, WeatherService weatherService, CurrencyService currencyService) {
         this.botConfig = botConfig;
         this.userRepository = userRepository;
         this.taskService = taskService;
         this.inlineKeyboard = inlineKeyboard;
-        this.weatherParser = weatherParser;
+        this.weatherService = weatherService;
+        this.currencyService = currencyService;
 
         List<BotCommand> listOfCommands = new ArrayList<>();
 
@@ -65,6 +70,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/clearalltasks", "Полная очистка задач"));
         listOfCommands.add(new BotCommand("/cleardone", "Удалить сделанные задачи"));
         listOfCommands.add(new BotCommand("/weather", "Посмотреть погоду"));
+        listOfCommands.add(new BotCommand("/usdrub", "Курс доллара"));
+        listOfCommands.add(new BotCommand("/eurrub", "Курс евро"));
         listOfCommands.add(new BotCommand("/cancel", "Отмена последнего действия"));
         listOfCommands.add(new BotCommand("/help", "Информация о командах бота"));
 
@@ -80,7 +87,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
 
         EditMessageText editMessageText = null;
-
 
         if (update.hasMessage() && update.getMessage().hasText()) {
             sendMessage = getByMessage(update.getMessage(), null);
@@ -110,20 +116,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         long chatId = callbackQuery != null ? callbackQuery.getMessage().getChatId() : message.getChatId();
 
         User user = null;
-
-        boolean isTask = false;
-        boolean isDone = false;
-        boolean isDelTask = false;
         Status status = Status.START;
 
         if (checkUser(chatId)) {
             user = userRepository.findById(chatId).get();
-            isDone = user.isDoneTask();
-            isTask = user.isCreatTask();
-            isDelTask = user.isDelTask();
             status = user.getPosition();
         }
-      
+
         if (status == null) {
             status = Status.START;
             user.setPosition(Status.START);
@@ -164,7 +163,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
 
                 case "/cancel" -> {
-                    if (!isTask && !isDone) {
+                    if (!user.isCreatTask() && !user.isDoneTask() && !user.isDelTask() && !user.isWeather()) {
                         sendMessage.setText("У Вас нет выполняемых действий");
                     } else {
                         falseAction(user);
@@ -219,6 +218,20 @@ public class TelegramBot extends TelegramLongPollingBot {
                     userRepository.save(user);
                 }
 
+                case "/usdrub" -> {
+                    falseAction(user);
+                    Currency currency = currencyService.getCurrency("usd", "rub");
+                    sendMessage.setText(currency.getError() == 200 ? "Курс доллара: " + currency.getAmount() :
+                            "В данный момент сервис недоступен");
+                }
+
+                case "/eurrub" -> {
+                    falseAction(user);
+                    Currency currency = currencyService.getCurrency("eur", "rub");
+                    sendMessage.setText(currency.getError() == 200? "Курс евро: " + currency.getAmount() :
+                            "В данный момент сервис недоступен");
+                }
+
                 case "goTask" -> {
                     user.setPosition(Status.TASK);
                     status = Status.TASK;
@@ -235,6 +248,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage.setText("Погода:");
                 }
 
+                case "goCurrency" -> {
+                    user.setPosition(Status.CURRENCY);
+                    userRepository.save(user);
+                    status = Status.CURRENCY;
+                    sendMessage.setText("Валюта:");
+                }
+
                 default -> {
                     if (user.isCreatTask()) {
                         sendMessage.setText(taskService.createTask(messageText, chatId));
@@ -242,8 +262,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage.setText(taskService.taskDone(messageText, chatId));
                     } else if (user.isDelTask()) {
                         sendMessage.setText(taskService.deleteTask(messageText, chatId));
-                    } else if (user.isWeather()){
-                        sendMessage.setText(weatherParser.getWeatherByCity(messageText));
+                    } else if (user.isWeather()) {
+                        sendMessage.setText(weatherService.getWeatherByCity(messageText).toString());
+                    } else {
+                        sendMessage.setText("Неизвестная команда, попробуйте ещё раз");
                     }
 
                     falseAction(user);
@@ -266,6 +288,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             case WEATHER -> {
                 return inlineKeyboard.getWeatherKeyboard();
+            }
+            case CURRENCY -> {
+                return inlineKeyboard.getCurrencyKeyboard();
             }
         }
 

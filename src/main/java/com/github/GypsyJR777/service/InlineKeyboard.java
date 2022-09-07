@@ -10,20 +10,28 @@ import java.util.List;
 @Component
 public class InlineKeyboard {
     public InlineKeyboardMarkup getStartKeyboard() {
-        InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
-        inlineKeyboardButton1.setText("Задачи");
-        inlineKeyboardButton1.setCallbackData("goTask");
+        InlineKeyboardButton goTask = new InlineKeyboardButton();
+        goTask.setText("Задачи");
+        goTask.setCallbackData("goTask");
 
-        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
-        inlineKeyboardButton2.setText("Погода");
-        inlineKeyboardButton2.setCallbackData("goWeather");
+        InlineKeyboardButton goWeather = new InlineKeyboardButton();
+        goWeather.setText("Погода");
+        goWeather.setCallbackData("goWeather");
+
+        InlineKeyboardButton goCurrency = new InlineKeyboardButton();
+        goCurrency.setText("Валюта");
+        goCurrency.setCallbackData("goCurrency");
 
         List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
-        keyboardButtonsRow1.add(inlineKeyboardButton1);
-        keyboardButtonsRow1.add(inlineKeyboardButton2);
+        keyboardButtonsRow1.add(goTask);
+        keyboardButtonsRow1.add(goWeather);
+
+        List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
+        keyboardButtonsRow2.add(goCurrency);
 
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         rowList.add(keyboardButtonsRow1);
+        rowList.add(keyboardButtonsRow2);
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         inlineKeyboardMarkup.setKeyboard(rowList);
@@ -98,6 +106,36 @@ public class InlineKeyboard {
 
         List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
         keyboardButtonsRow1.add(buttonWeatherToday);
+
+        List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
+        keyboardButtonsRow2.add(buttonBack);
+
+        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
+        rowList.add(keyboardButtonsRow1);
+        rowList.add(keyboardButtonsRow2);
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        inlineKeyboardMarkup.setKeyboard(rowList);
+
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup getCurrencyKeyboard() {
+        InlineKeyboardButton usdRub = new InlineKeyboardButton();
+        usdRub.setText("USD/RUB");
+        usdRub.setCallbackData("/usdrub");
+
+        InlineKeyboardButton eurRub = new InlineKeyboardButton();
+        eurRub.setText("EUR/RUB");
+        eurRub.setCallbackData("/eurrub");
+
+        InlineKeyboardButton buttonBack = new InlineKeyboardButton();
+        buttonBack.setText("Назад");
+        buttonBack.setCallbackData("/back");
+
+        List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
+        keyboardButtonsRow1.add(usdRub);
+        keyboardButtonsRow1.add(eurRub);
 
         List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
         keyboardButtonsRow2.add(buttonBack);

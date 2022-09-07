@@ -18,3 +18,7 @@ bot:
 weather:
   key: apiKey
   url: apiURL
+
+currency:
+  key: apiKey
+  url: apiURL
