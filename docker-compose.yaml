@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  postgres_db:
+    image: 'postgres:latest'
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=edbot_telegram
+      - POSTGRES_USER=gypsyjr
+      - POSTGRES_PASSWORD=12345678
+#  mysql_db:
+#    container_name: mysql_db
+#    image: mysql:latest
+#    restart: unless-stopped
+#    ports:
+#      - 3306:3306
+#    environment:
+#      MYSQL_DATABASE: edbot_telegram
+#      MYSQL_USER: gypsyjr
+#      MYSQL_PASSWORD: 12345678
+#      MYSQL_ROOT_PASSWORD: 12345678
+#    volumes:
+#      - db:/var/lib/mysql
+
+  app:
+    image: mytgbot
+    build:
+      context: .
+    restart: on-failure
+    ports:
+      - "8089:8089"
+    depends_on:
+      - postgres_db
+#    expose:
+#      - 8080
+
+#    command: mvn clean spring-boot:run
+#    environment:
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/edbot_telegram
+#      - SPRING_DATASOURCE_USERNAME=gypsyjr
+#      - SPRING_DATASOURCE_PASSWORD=12345678
+#      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
