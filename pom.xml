@@ -9,12 +9,12 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.github</groupId>
-    <artifactId>GypsyJR777</artifactId>
+    <artifactId>gypsyjr777</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>EveryDayHelper</name>
     <description>Telegram bot</description>
     <properties>
-        <java.version>18</java.version>
+        <java.version>17</java.version>
     </properties>
     <dependencies>
         <dependency>
@@ -45,9 +45,9 @@
         </dependency>
 
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.29</version>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.5.0</version>
         </dependency>
 
         <dependency>
@@ -74,7 +74,18 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>org.springframework.boot</groupId>-->
+<!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <image>-->
+<!--                        <name>gypsyjr/${project.artifactId}</name>-->
+<!--                    </image>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
         </plugins>
     </build>
+
 
 </project>
