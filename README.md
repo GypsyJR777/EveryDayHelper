@@ -1,6 +1,6 @@
 # EveryDayHelper
-https://t.me/EDHelper_bot
-In development
+https://t.me/EDHelper_bot (It sometimes works)\
+Project is ready, there may be improvements
 ____
 :grey_exclamation: _Java v18.0.1_
 
