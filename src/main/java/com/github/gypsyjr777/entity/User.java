@@ -1,10 +1,12 @@
 package com.github.gypsyjr777.entity;
 
 import com.github.gypsyjr777.entity.enums.Status;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.*;
 import java.sql.Timestamp;
 
 @Getter

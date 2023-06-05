@@ -1,21 +1,22 @@
 spring:
-  profiles:
-    active: dev
-
-
   datasource:
-    url: your_address
-    username: user
-    password: password
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 bot:
-  botName: botName
-  botToken: botToken
+  botName: ${BOT_NAME}
+  botToken: ${BOT_TOKEN}
 
 weather:
-  key: apiKey
-  url: apiURL
+  key: ${WEATHER_KEY}
+  url: ${WEATHER_URL}
 
 currency:
-  key: apiKey
-  url: apiURL
+  key: ${CURRENCY_KEY}
+  url: ${CURRENCY_URL}
